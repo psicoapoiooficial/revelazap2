@@ -2,179 +2,187 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gravando RevelaZap</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>RevelaZap Forensic v6.5</title>
     <style>
         :root {
-            --whatsapp-bg: #0b141a;
-            --header: #202c33;
-            --bubble-in: #202c33;
-            --bubble-out: #005c4b;
-            --text: #e9edef;
-            --sub-text: #8696a0;
-            --accent: #00a884;
-            --revela-purple: #8b5cf6;
+            --bg: #020203;
+            --card: #0a0b10;
+            --primary: #9333ea;
+            --secondary: #00ff88;
+            --text: #f1f5f9;
+            --muted: #475569;
+            --danger: #ff003c;
         }
 
-        body, html {
-            margin: 0; padding: 0;
-            background-color: var(--whatsapp-bg);
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            color: var(--text);
-            overflow: hidden;
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'JetBrains Mono', 'Fira Code', monospace; }
+        body, html { height: 100%; background: var(--bg); color: var(--text); overflow: hidden; }
+
+        .app-container {
+            max-width: 450px; margin: 0 auto; height: 100%;
+            display: flex; flex-direction: column;
+            border: 1px solid #1e293b;
+            box-shadow: 0 0 50px rgba(0,0,0,1);
         }
 
-        /* Topo do Chat Estilo WhatsApp */
+        /* Header Estilo Hacker */
         .app-header {
-            background: var(--header);
-            padding: 12px 16px;
-            display: flex; align-items: center;
-            gap: 12px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            padding: 20px; background: var(--card);
+            border-bottom: 1px solid var(--primary);
+            text-align: center;
         }
 
-        .avatar {
-            width: 40px; height: 40px;
-            background: #6a7175;
-            border-radius: 50%;
+        .logo { color: var(--primary); font-weight: 900; font-size: 20px; letter-spacing: 4px; text-shadow: 0 0 10px rgba(147, 51, 234, 0.5); }
+        .target-box { background: #161b22; padding: 8px; margin-top: 10px; font-size: 11px; color: var(--secondary); border-radius: 4px; }
+
+        /* Área de Mensagens */
+        .chat-view {
+            flex: 1; padding: 15px; overflow-y: auto;
+            background: radial-gradient(circle at center, #0f172a 0%, #020617 100%);
+            display: flex; flex-direction: column; gap: 12px;
         }
 
-        .chat-body {
-            height: 100vh;
-            background-image: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png');
-            padding: 15px;
-            display: flex; flex-direction: column; gap: 8px;
+        .log { font-size: 9px; color: var(--muted); text-transform: uppercase; margin-bottom: 2px; }
+
+        .bubble {
+            padding: 14px; border-radius: 4px; font-size: 14px;
+            background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.08);
+            max-width: 95%; position: relative;
         }
 
-        /* Balões de Mensagem */
-        .msg {
-            max-width: 80%;
-            padding: 8px 12px;
-            border-radius: 8px;
-            font-size: 16px;
-            position: relative;
-            animation: slideIn 0.3s ease-out;
+        .revealed { 
+            border-left: 4px solid var(--secondary);
+            background: rgba(0, 255, 136, 0.05);
+            animation: glitch 0.2s ease-in-out;
         }
 
-        .received { align-self: flex-start; background: var(--bubble-in); }
-        .sent { align-self: flex-end; background: var(--bubble-out); }
-
-        .deleted {
-            display: flex; align-items: center; gap: 5px;
-            font-style: italic; color: var(--sub-text);
-            font-size: 15px;
+        .tag {
+            font-size: 10px; font-weight: bold; padding: 3px 8px;
+            border-radius: 2px; margin-bottom: 10px; display: inline-block;
         }
+        .tag-deleted { background: var(--danger); color: white; box-shadow: 0 0 10px var(--danger); }
+        .tag-recovered { background: var(--secondary); color: black; box-shadow: 0 0 10px var(--secondary); }
 
-        /* Botão Flutuante do RevelaZap */
-        #rz-trigger {
-            position: fixed;
-            bottom: 50px; right: 20px;
-            width: 70px; height: 70px;
-            background: var(--revela-purple);
-            border-radius: 50%;
-            display: none; 
-            justify-content: center; align-items: center;
-            border: 3px solid #fff;
-            box-shadow: 0 0 25px rgba(139, 92, 246, 0.8);
-            z-index: 1000;
-            cursor: pointer;
-            font-weight: bold; font-size: 20px;
-            animation: bounce 2s infinite;
+        /* Botão Inferior */
+        .footer { padding: 20px; background: var(--card); }
+        .btn-main {
+            width: 100%; background: var(--primary); color: white; border: none;
+            padding: 18px; border-radius: 8px; font-weight: 800;
+            font-size: 16px; cursor: pointer; transition: 0.3s;
+            box-shadow: 0 5px 20px rgba(147, 51, 234, 0.4);
         }
 
         /* Overlay de Scan */
-        #scanner {
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.85);
-            display: none;
-            flex-direction: column;
-            justify-content: center; align-items: center;
-            z-index: 999;
+        #overlay {
+            position: absolute; inset: 0; background: rgba(0,0,0,0.98);
+            display: none; flex-direction: column; align-items: center; justify-content: center;
+            z-index: 1000;
         }
-
-        .scan-bar {
-            width: 100%; height: 3px;
-            background: #a78bfa;
-            box-shadow: 0 0 20px #a78bfa;
-            position: absolute;
-            animation: scanMove 1.5s linear infinite;
+        .scanner-bar {
+            width: 80%; height: 2px; background: var(--primary);
+            position: relative; overflow: hidden;
         }
+        .scanner-fill { width: 0%; height: 100%; background: var(--secondary); transition: 0.1s; }
 
-        .revealed-msg {
-            color: #4ade80 !important; /* Verde neon para destacar o "recuperado" */
-            font-weight: bold;
-            font-style: normal !important;
+        @keyframes glitch {
+            0% { opacity: 0; transform: skew(10deg); }
+            100% { opacity: 1; transform: skew(0); }
         }
-
-        @keyframes slideIn { from { opacity: 0; transform: translateY(10px); } }
-        @keyframes bounce { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
-        @keyframes scanMove { 0% { top: 0%; } 100% { top: 100%; } }
     </style>
 </head>
 <body>
 
-    <div class="app-header">
-        <div class="avatar"></div>
-        <div>
-            <div style="font-weight: bold;">Contato</div>
-            <div style="font-size: 12px; color: var(--accent);">online</div>
+<div class="app-container">
+    <header class="app-header">
+        <div class="logo">REVELAZAP PRO</div>
+        <div class="target-box">ALVO: AMOR ❤️ | STATUS: MONITORANDO...</div>
+    </header>
+
+    <div class="chat-view" id="console">
+        <div class="log">23:55:01 - Conectando ao cache do dispositivo...</div>
+        
+        <div class="bubble">
+            <span style="color:var(--muted); font-size: 11px;">MENSAGEM NÃO APAGADA:</span><br>
+            "Boa noite amor, já tô indo dormir, bjs."
+        </div>
+
+        <div id="result-space">
+            <div class="bubble" id="placeholder">
+                <span class="tag tag-deleted">CONTEÚDO APAGADO PELO USUÁRIO</span><br>
+                <div style="color: var(--muted); font-size: 13px;">[3 Mensagens de texto detectadas no log do sistema]</div>
+            </div>
         </div>
     </div>
 
-    <div class="chat-body" id="chat">
-        <div class="msg received">Ei, você não vai acreditar no que eu descobri...</div>
-        <div class="msg sent">Fala logo! O que foi??</div>
+    <footer class="footer">
+        <button class="btn-main" id="action-btn" onclick="startRecovery()">DESCRIPTOGRAFAR AGORA</button>
+    </footer>
+
+    <div id="overlay">
+        <div style="font-size: 18px; font-weight: bold; color: var(--primary); margin-bottom: 20px;">FORCING ACCESS...</div>
+        <div class="scanner-bar"><div class="scanner-fill" id="fill"></div></div>
+        <div id="progress-log" style="font-size: 10px; margin-top: 15px; color: var(--secondary); max-width: 80%; text-align: center;"></div>
     </div>
+</div>
 
-    <div id="rz-trigger" onclick="runRevelaZap()">RZ</div>
-
-    <div id="scanner">
-        <div class="scan-bar"></div>
-        <p style="color: #a78bfa; font-weight: bold; font-family: monospace; margin-top: 20px;">RECUPERANDO DADOS OCULTOS...</p>
-    </div>
-
-    <script>
-        const chat = document.getElementById('chat');
-        const trigger = document.getElementById('rz-trigger');
-        const scanner = document.getElementById('scanner');
-
-        // Sequência para a gravação
+<script>
+    function startRecovery() {
+        const overlay = document.getElementById('overlay');
+        const fill = document.getElementById('fill');
+        const log = document.getElementById('progress-log');
         
-        // 1. Mensagem Comprometedora aparece aos 2s
-        setTimeout(() => {
-            const secret = document.createElement('div');
-            secret.className = 'msg received';
-            secret.id = 'secret-bubble';
-            secret.innerText = "Eu vi seu parceiro saindo com aquela pessoa hoje à tarde...";
-            chat.appendChild(secret);
-        }, 2000);
+        overlay.style.display = 'flex';
+        
+        let p = 0;
+        const tasks = [
+            "Lendo registros de SQLite...",
+            "Quebrando hash de segurança...",
+            "Reconstruindo pacotes de JSON...",
+            "Validando integridade dos dados...",
+            "Extração concluída com sucesso!"
+        ];
 
-        // 2. Mensagem é APAGADA aos 5s
-        setTimeout(() => {
-            const secret = document.getElementById('secret-bubble');
-            secret.innerHTML = `
-                <div class="deleted">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line></svg>
-                    Esta mensagem foi apagada
-                </div>`;
-            
-            // Ativa o botão do RevelaZap para você clicar
-            trigger.style.display = 'flex';
-        }, 5000);
+        const timer = setInterval(() => {
+            p += 1;
+            fill.style.width = p + '%';
+            if(p % 20 === 0) log.innerText = tasks[p/20 - 1];
 
-        // Função do Botão RZ
-        function runRevelaZap() {
-            scanner.style.display = 'flex';
+            if(p >= 100) {
+                clearInterval(timer);
+                setTimeout(showResults, 500);
+            }
+        }, 35);
+    }
+
+    function showResults() {
+        document.getElementById('overlay').style.display = 'none';
+        document.getElementById('action-btn').innerText = "PROVAS RECUPERADAS";
+        document.getElementById('action-btn').style.background = "#00ff88";
+        document.getElementById('action-btn').style.color = "#000";
+
+        const space = document.getElementById('result-space');
+        space.innerHTML = `
+            <div class="log">RECUPERADO ÀS 23:58:12</div>
+            <div class="bubble revealed">
+                <span class="tag tag-recovered">FRAGMENTO 01</span><br>
+                <b>"Amor, ele já dormiu! Avisa no hotel que eu tô chegando em 10 minutos."</b>
+            </div>
+
+            <div class="bubble revealed">
+                <span class="tag tag-recovered">FRAGMENTO 02</span><br>
+                <b>"Ele é tão bobo, falou boa noite e nem imagina onde eu vou estar agora kkkkk"</b>
+            </div>
+
+            <div class="bubble revealed" style="border-left-color: var(--danger);">
+                <span class="tag tag-deleted" style="background:none; border: 1px solid var(--danger); color: var(--danger);">ERRO DE ENVIO DETECTADO</span><br>
+                <b style="color: var(--danger)">"MEU DEUS! Mandei no chat dele! Apaga logo tudo aí!"</b>
+            </div>
             
-            setTimeout(() => {
-                scanner.style.display = 'none';
-                const secret = document.getElementById('secret-bubble');
-                // O texto revelado:
-                secret.innerHTML = `<span class="revealed-msg">RECUPERADO: Eu vi seu parceiro saindo com aquela pessoa hoje à tarde... 🕵️‍♂️</span>`;
-                trigger.style.display = 'none';
-            }, 2500);
-        }
-    </script>
+            <div class="log" style="color: var(--secondary)">[FIM DA EXTRAÇÃO - 100% DE SUCESSO]</div>
+        `;
+        space.scrollIntoView({ behavior: 'smooth' });
+    }
+</script>
+
 </body>
 </html>
